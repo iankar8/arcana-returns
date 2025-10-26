@@ -1,0 +1,152 @@
+# Arcana Returns API - Example Requests
+# Use with REST Client extension in VS Code or similar tools
+
+@baseUrl = http://localhost:3000
+@apiKey = YOUR_API_KEY_HERE
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Get JWKS
+GET {{baseUrl}}/.well-known/jwks.json
+
+### ============================================
+### Policy Management
+### ============================================
+
+### Import Policy from Text
+POST {{baseUrl}}/policy/import
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "source_type": "text",
+  "source_content": "Returns accepted within 30 days of purchase. Items must be in original packaging with tags attached. Restocking fee of 0% applies. We accept returns via mail or in-store drop-off. Photo evidence of packaging required for high-value items.",
+  "merchant_id": "merchant_test",
+  "effective_at": "2025-10-25T00:00:00Z"
+}
+
+### Get Policy (replace with your policy_id)
+GET {{baseUrl}}/policy/plc_abc123
+Authorization: Bearer {{apiKey}}
+
+### Compare Policy Versions
+GET {{baseUrl}}/policy/plc_abc123/diff?from=plc_abc123_v1&to=plc_abc123_v2
+Authorization: Bearer {{apiKey}}
+
+### ============================================
+### Returns Flow
+### ============================================
+
+### Step 1: Issue Return Token
+POST {{baseUrl}}/returns/token
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "order_id": "ord_test_001",
+  "customer_ref": "cust_test_123",
+  "items": [
+    {
+      "sku": "SHIRT-M-BLUE",
+      "qty": 1,
+      "price_cents": 2999,
+      "name": "Blue Cotton Shirt - Medium"
+    }
+  ],
+  "reason_code": "doesnt_fit",
+  "device_fingerprint": "dfp_browser_abc123",
+  "agent_headers": {
+    "agent_id": "shop-agent-v1",
+    "version": "1.0.0"
+  },
+  "policy_id": "plc_abc123"
+}
+
+### Step 2: Authorize Return (use token from previous response)
+POST {{baseUrl}}/returns/authorize
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "return_token": "YOUR_RETURN_TOKEN_HERE",
+  "evidence": [
+    {
+      "type": "photo_packaging",
+      "url": "https://example.com/evidence/packaging.jpg"
+    }
+  ],
+  "dropoff_choice": "mail_in"
+}
+
+### Step 3: Commit Return (use same token)
+POST {{baseUrl}}/returns/commit
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "return_token": "YOUR_RETURN_TOKEN_HERE",
+  "receipt_event": {
+    "type": "scan",
+    "carrier": "UPS",
+    "ts": "2025-10-25T18:00:00Z",
+    "tracking_number": "1Z999AA10123456784"
+  }
+}
+
+### ============================================
+### AEL (Audit & Eval Ledger)
+### ============================================
+
+### Get Decision by ID
+GET {{baseUrl}}/ael/decision/dec_abc123
+Authorization: Bearer {{apiKey}}
+
+### List Recent Decisions
+GET {{baseUrl}}/ael/decisions?limit=10
+Authorization: Bearer {{apiKey}}
+
+### Generate Replay for Decision
+POST {{baseUrl}}/ael/replay/dec_abc123
+Authorization: Bearer {{apiKey}}
+
+### Get Replay Artifact
+GET {{baseUrl}}/ael/replay/rpl_xyz789
+Authorization: Bearer {{apiKey}}
+
+### Compare Two Decisions
+GET {{baseUrl}}/ael/diff?baseline=dec_abc123&candidate=dec_xyz789
+Authorization: Bearer {{apiKey}}
+
+### ============================================
+### Webhooks (no auth required)
+### ============================================
+
+### Shopify Webhook
+POST {{baseUrl}}/webhooks/shopify
+X-Shopify-Topic: orders/updated
+X-Shopify-Shop-Domain: test-store.myshopify.com
+Content-Type: application/json
+
+{
+  "id": 12345,
+  "order_number": 1001,
+  "email": "customer@example.com",
+  "total_price": "29.99"
+}
+
+### Stripe Webhook
+POST {{baseUrl}}/webhooks/stripe
+Stripe-Signature: test_signature
+Content-Type: application/json
+
+{
+  "id": "evt_test_123",
+  "type": "charge.refunded",
+  "data": {
+    "object": {
+      "id": "ch_test_456",
+      "amount": 2999
+    }
+  }
+}
