@@ -1,10 +1,16 @@
 {
-  "name": "Arcana Returns",
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Arcana Labs",
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
   },
   "favicon": "/favicon.svg",
+  "metadata": {
+    "og:site_name": "Arcana Labs Documentation",
+    "og:title": "Arcana Labs - Agentic Returns API",
+    "twitter:site": "@arcanalabs"
+  },
   "colors": {
     "primary": "#0D9373",
     "light": "#07C983",

@@ -43,6 +43,9 @@ export default function Home() {
       {/* Top nav */}
       <div className="absolute top-0 right-0 p-6 z-20">
         <div className="flex items-center space-x-6 text-sm">
+          <Link href="/docs">
+            <span className="text-gray-400 hover:text-white transition cursor-pointer">Docs</span>
+          </Link>
           <Link href="/team">
             <span className="text-gray-400 hover:text-white transition cursor-pointer">Team</span>
           </Link>
