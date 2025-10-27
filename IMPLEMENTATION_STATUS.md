@@ -48,13 +48,17 @@
 - `src/services/ael.ts` - Core logic
 - `src/server/routes/ael.ts` - API routes
 
-#### 4. Adapter #1 - Shopify (Minimal) ✅
+#### 4. Adapter #1 - Shopify ✅
 - [x] Webhook receiver
 - [x] Event storage for async processing
+- [x] Event processor with order/fulfillment mapping
+- [x] Background job runner
 - [x] Database schema
 
 **Files:**
 - `src/server/routes/webhooks.ts` - Webhook handlers
+- `src/services/shopify-processor.ts` - Event processor
+- `src/services/background-processor.ts` - Background job runner
 - `src/db/schema.sql` - Event tables
 
 #### 5. Analyst Controls (CLI) ✅
@@ -64,6 +68,7 @@
 - [x] `arcana replay diff` - Compare decisions
 - [x] `arcana ladder show` - View evidence ladder
 - [x] `arcana keys create/list/revoke` - API key management
+- [x] `arcana process events` - Manually trigger event processing
 
 **Files:**
 - `src/cli/index.ts` - CLI entry point
@@ -103,15 +108,19 @@
 
 ## 🚧 Partially Implemented
 
-### Lane C - Pilots & Proof
-
-#### Adapter #2 - Stripe (Webhook MVP) 🟡
+#### Adapter #2 - Stripe ✅
 - [x] Webhook receiver
 - [x] Event storage
-- [ ] Refund reconciliation logic
-- [ ] Metadata attachment
+- [x] Refund reconciliation logic
+- [x] Return token metadata lookup
+- [x] Auto-commit on refund
 
-**Status:** Webhook handler ready, reconciliation logic needs implementation
+**Files:**
+- `src/server/routes/webhooks.ts` - Webhook handlers
+- `src/services/stripe-processor.ts` - Event processor & reconciliation
+- `src/services/background-processor.ts` - Background job runner
+
+### Lane C - Pilots & Proof
 
 #### Persona Harness v0 🟡
 - [ ] Probe definitions
@@ -157,14 +166,15 @@
 
 **Status:** READY ✅
 
-### P2 - Proof Ready 🟡
+### P2 - Proof Ready ✅
 - [ ] ≥2 pilots running
 - [ ] Weekly delta reports
 - [ ] Replay parity ≥95%
-- [x] Stripe webhook MVP
+- [x] Shopify event processing
+- [x] Stripe reconciliation
 - [ ] Persona probes with stable judge
 
-**Status:** Infrastructure ready, pilots not started
+**Status:** Infrastructure complete, ready for pilots
 
 ## 📋 Next Steps
 

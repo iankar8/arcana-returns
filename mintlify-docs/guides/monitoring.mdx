@@ -1,0 +1,326 @@
+---
+title: 'Monitoring & Health Checks'
+description: 'Monitor your Arcana integration with health endpoints and metrics'
+---
+
+## Health Endpoints
+
+### GET /health
+
+Basic health check for uptime monitoring.
+
+<CodeGroup>
+
+```bash cURL
+curl https://arcana-returns-api.fly.dev/health
+```
+
+```javascript Node.js
+const response = await fetch('https://arcana-returns-api.fly.dev/health');
+const data = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "version": "0.1.0",
+  "timestamp": "2025-10-27T04:07:09.842Z"
+}
+```
+
+<Tip>
+  Use this endpoint for **simple uptime monitoring** and **load balancer health checks**.
+</Tip>
+
+---
+
+### GET /health/detailed
+
+Comprehensive system status with subsystem checks and metrics.
+
+<CodeGroup>
+
+```bash cURL
+curl https://arcana-returns-api.fly.dev/health/detailed
+```
+
+```javascript Node.js
+const response = await fetch('https://arcana-returns-api.fly.dev/health/detailed');
+const health = await response.json();
+
+// Check specific subsystems
+if (health.checks.database.status !== 'up') {
+  alert('Database issue detected!');
+}
+```
+
+</CodeGroup>
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-27T04:07:09.842Z",
+  "version": "0.1.0",
+  "checks": {
+    "database": {
+      "status": "up"
+    },
+    "dlq": {
+      "status": "ok",
+      "unresolved": 0,
+      "total": 0
+    },
+    "rateLimits": {
+      "status": "ok",
+      "activeEndpoints": 5
+    }
+  },
+  "metrics": {
+    "requests": {
+      "total": 1234,
+      "avgDuration": 85,
+      "errorRate": 0.02
+    }
+  }
+}
+```
+
+### Status Indicators
+
+| Field | Values | Meaning |
+|-------|--------|---------|
+| `status` | `healthy`, `degraded`, `down` | Overall system health |
+| `checks.database.status` | `up`, `down` | Database connectivity |
+| `checks.dlq.status` | `ok`, `warning` | Dead letter queue health |
+| `checks.dlq.unresolved` | number | Failed events needing attention |
+
+<Warning>
+  If `checks.dlq.unresolved > 100`, investigate failed webhook deliveries!
+</Warning>
+
+---
+
+## Metrics Endpoint
+
+### GET /metrics
+
+Prometheus-compatible metrics for monitoring and alerting.
+
+```bash
+curl https://arcana-returns-api.fly.dev/metrics
+```
+
+**Response:**
+```prometheus
+# HELP arcana_requests_total Total number of requests
+# TYPE arcana_requests_total counter
+arcana_requests_total 1234
+
+# HELP arcana_request_duration_ms Average request duration in milliseconds
+# TYPE arcana_request_duration_ms gauge
+arcana_request_duration_ms 85
+
+# HELP arcana_error_rate Request error rate (0-1)
+# TYPE arcana_error_rate gauge
+arcana_error_rate 0.02
+
+# HELP arcana_dlq_unresolved Unresolved DLQ events
+# TYPE arcana_dlq_unresolved gauge
+arcana_dlq_unresolved 0
+
+# Status codes
+arcana_status_200_total 1150
+arcana_status_400_total 15
+arcana_status_401_total 5
+arcana_status_429_total 10
+arcana_status_500_total 2
+```
+
+---
+
+## Prometheus Integration
+
+### Configuration
+
+Add to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'arcana-returns'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['arcana-returns-api.fly.dev']
+    metrics_path: '/metrics'
+    scheme: 'https'
+```
+
+### Recommended Alerts
+
+<AccordionGroup>
+  <Accordion title="High Error Rate">
+    ```yaml
+    - alert: ArcanaHighErrorRate
+      expr: arcana_error_rate > 0.05
+      for: 5m
+      annotations:
+        summary: "Arcana error rate above 5%"
+        description: "Current rate: {{ $value }}"
+    ```
+  </Accordion>
+  
+  <Accordion title="DLQ Backlog">
+    ```yaml
+    - alert: ArcanaDLQBacklog
+      expr: arcana_dlq_unresolved > 100
+      for: 10m
+      annotations:
+        summary: "DLQ has {{ $value }} unresolved events"
+        description: "Webhook deliveries may be failing"
+    ```
+  </Accordion>
+  
+  <Accordion title="Slow Requests">
+    ```yaml
+    - alert: ArcanaSlowRequests
+      expr: arcana_request_duration_ms > 1000
+      for: 5m
+      annotations:
+        summary: "Average request duration above 1s"
+        description: "Current: {{ $value }}ms"
+    ```
+  </Accordion>
+  
+  <Accordion title="High Rate Limiting">
+    ```yaml
+    - alert: ArcanaHighRateLimiting
+      expr: rate(arcana_status_429_total[5m]) > 10
+      for: 5m
+      annotations:
+        summary: "High rate of 429 responses"
+        description: "Clients may be hitting rate limits"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Grafana Dashboard
+
+### Key Panels
+
+<AccordionGroup>
+  <Accordion title="Request Rate">
+    ```promql
+    rate(arcana_requests_total[5m])
+    ```
+    Shows requests per second over time
+  </Accordion>
+  
+  <Accordion title="Error Rate">
+    ```promql
+    arcana_error_rate * 100
+    ```
+    Shows error percentage
+  </Accordion>
+  
+  <Accordion title="Latency">
+    ```promql
+    arcana_request_duration_ms
+    ```
+    Shows average request duration
+  </Accordion>
+  
+  <Accordion title="Status Code Distribution">
+    ```promql
+    sum by (code) (
+      rate(arcana_status_200_total[5m]),
+      rate(arcana_status_400_total[5m]),
+      rate(arcana_status_429_total[5m]),
+      rate(arcana_status_500_total[5m])
+    )
+    ```
+    Shows breakdown by status code
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Monitoring Best Practices
+
+<AccordionGroup>
+  <Accordion title="Set Up Uptime Monitoring">
+    Use services like Pingdom, UptimeRobot, or Datadog to ping `/health` every minute:
+    
+    ```bash
+    curl -f https://arcana-returns-api.fly.dev/health || exit 1
+    ```
+  </Accordion>
+  
+  <Accordion title="Monitor DLQ Size">
+    Check `/health/detailed` regularly and alert if `checks.dlq.unresolved > 100`
+    
+    ```javascript
+    const health = await fetch('/health/detailed').then(r => r.json());
+    if (health.checks.dlq.unresolved > 100) {
+      sendAlert('DLQ backlog detected!');
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Track Error Rates">
+    Monitor error rate and alert if it exceeds 5% for more than 5 minutes.
+  </Accordion>
+  
+  <Accordion title="Monitor Latency">
+    Track p50, p95, and p99 latency. Alert if p99 > 1000ms.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Performance Targets
+
+| Metric | Target | Alert Threshold |
+|--------|--------|----------------|
+| **Error Rate** | < 1% | > 5% |
+| **Average Latency** | < 200ms | > 1000ms |
+| **p99 Latency** | < 500ms | > 2000ms |
+| **DLQ Size** | 0 | > 100 |
+| **Uptime** | 99.9% | < 99% |
+
+---
+
+## Debugging with Trace IDs
+
+All responses include a `trace_id` for debugging:
+
+```json
+{
+  "error": {
+    "code": "RT-007",
+    "message": "Invalid token signature",
+    "trace_id": "trc_9Nf2kL5p"
+  }
+}
+```
+
+<Tip>
+  Include the `trace_id` when contacting support for faster resolution!
+</Tip>
+
+---
+
+## Next Steps
+
+<CardGroup>
+  <Card title="Rate Limiting" icon="gauge" href="/guides/rate-limiting">
+    Understand rate limits and handling
+  </Card>
+  <Card title="Error Codes" icon="triangle-exclamation" href="/reference/error-codes">
+    Complete error code reference
+  </Card>
+</CardGroup>

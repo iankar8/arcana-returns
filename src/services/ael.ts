@@ -53,7 +53,7 @@ export class AELService {
     // Get evidence
     const evidenceRows = db.prepare(`
       SELECT * FROM evidence WHERE trace_id = ?
-    `).getAll(decisionData.decision.trace_id);
+    `).all(decisionData.decision.trace_id);
     
     const inputs = {
       token_claims: tokenRow,

@@ -48,6 +48,31 @@ export const ErrorCodes = {
   // Auth errors (AUTH-xxx)
   AUTH_001: 'AUTH-001', // Invalid API key
   AUTH_002: 'AUTH-002', // Unauthorized
+  AUTH_003: 'AUTH-003', // Public key not found
+  
+  // Config errors (CONFIG-xxx)
+  CONFIG_001: 'CONFIG-001', // Configuration missing
+  
+  // External service errors (EXT-xxx)
+  EXT_001: 'EXT-001', // External service error
+  
+  // Attestation errors (ATT-xxx)
+  ATT_001: 'ATT-001', // Invalid attestation format
+  ATT_002: 'ATT-002', // Attestation verification failed
+  
+  // Evidence errors (EV-xxx)
+  EV_001: 'EV-001', // Invalid URL protocol
+  EV_002: 'EV-002', // Missing hostname
+  EV_003: 'EV-003', // Invalid URL format
+  EV_004: 'EV-004', // URL not accessible
+  EV_005: 'EV-005', // Request timeout
+  EV_006: 'EV-006', // Network error
+  EV_007: 'EV-007', // Missing Content-Type
+  EV_008: 'EV-008', // Unknown evidence type
+  EV_009: 'EV-009', // Invalid content type
+  EV_010: 'EV-010', // Could not verify content type
+  EV_011: 'EV-011', // File too large
+  EV_012: 'EV-012', // Image quality warning
   
   // Rate limit
   RATE_001: 'RATE-001', // Rate limit exceeded

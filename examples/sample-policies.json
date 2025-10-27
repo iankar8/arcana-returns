@@ -1,0 +1,29 @@
+{
+  "policies": [
+    {
+      "merchant_id": "merchant_amazon",
+      "merchant_name": "Amazon",
+      "policy_text": "Return window: 30 days for most items. Exceptions: Baby items (90 days), mattresses (100 days), wedding registry (180 days). Condition: Original packaging and accessories required. Special: Jewelry, fine art, collectibles require insurance/documentation. Edge: Returnless refunds available for some cases."
+    },
+    {
+      "merchant_id": "merchant_target",
+      "merchant_name": "Target",
+      "policy_text": "Standard window: 90 days for most items (opened/unopened). Electronics: 30 days, all accessories/packaging required. Cosmetics/perishables: Not returnable unless defective. No receipt: Store credit may apply. Flex: Opened household items are often accepted."
+    },
+    {
+      "merchant_id": "merchant_bestbuy",
+      "merchant_name": "Best Buy",
+      "policy_text": "Standard window: 15 days (regular), 60 days (Plus/Total members). Devices: 14 days for activatable electronics. Fees: 15% restocking for drones, cameras, projectors. Condition: Must be 'like new' with packaging & proof of purchase."
+    },
+    {
+      "merchant_id": "merchant_walmart",
+      "merchant_name": "Walmart",
+      "policy_text": "General items: 90 days with receipt. Electronics: 30 days, drones: 14 days. Clothing: 90 days, unworn/tagged. Groceries: 90 days, perishable soonest. Third-party: Seller-specific return rules apply."
+    },
+    {
+      "merchant_id": "merchant_nike",
+      "merchant_name": "Nike",
+      "policy_text": "Return window: 30 days from delivery. Restrictions: No returns for underwear (except sports bras), swimwear, socks. Condition: Original packaging, tags attached. Outside window: Declined; shipping cost charged to sender."
+    }
+  ]
+}

@@ -1,0 +1,377 @@
+---
+title: 'Rate Limiting'
+description: 'Understand and handle API rate limits'
+---
+
+## Overview
+
+Arcana uses **per-endpoint, per-merchant** rate limiting to ensure fair resource allocation and prevent abuse.
+
+<Info>
+  Different endpoints have different limits based on their resource requirements.
+</Info>
+
+## Rate Limits
+
+| Endpoint | Limit | Window | Reason |
+|----------|-------|--------|--------|
+| `/returns/token` | 100 req/min | 60s | High volume endpoint |
+| `/returns/authorize` | 50 req/min | 60s | Resource intensive (evidence validation) |
+| `/returns/commit` | 50 req/min | 60s | Critical operation |
+| `/webhooks/shopify` | 200 req/min | 60s | Webhook bursts |
+| `/webhooks/stripe` | 200 req/min | 60s | Webhook bursts |
+| Other endpoints | 1000 req/min | 60s | Global fallback |
+
+<Tip>
+  Limits are **per merchant**, so different API keys have separate quotas.
+</Tip>
+
+---
+
+## Rate Limit Headers
+
+Every response includes rate limit information:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 45
+X-RateLimit-Window: 60
+Retry-After: 45
+```
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `X-RateLimit-Limit` | Max requests allowed in window | `100` |
+| `X-RateLimit-Remaining` | Requests left in current window | `95` |
+| `X-RateLimit-Reset` | Seconds until limit resets | `45` |
+| `X-RateLimit-Window` | Window size in seconds | `60` |
+| `Retry-After` | Seconds to wait before retry (only on 429) | `45` |
+
+---
+
+## 429 Response
+
+When you exceed the rate limit:
+
+```json
+{
+  "error": {
+    "code": "RATE-001",
+    "message": "Rate limit exceeded for this endpoint",
+    "suggestion": "Wait for the duration specified in Retry-After header, or contact support to increase limits.",
+    "details": {
+      "endpoint": "/returns/authorize",
+      "limit": 50,
+      "retryAfter": "45"
+    },
+    "docs_url": "https://docs.arcana.dev/errors/RATE-001",
+    "trace_id": "trc_xyz789"
+  }
+}
+```
+
+**Response Headers:**
+```http
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 50
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 45
+Retry-After: 45
+```
+
+---
+
+## Handling Rate Limits
+
+### Check Before Sending
+
+```javascript
+async function makeRequest(url, options) {
+  const response = await fetch(url, options);
+  
+  // Check rate limit headers
+  const remaining = parseInt(response.headers.get('X-RateLimit-Remaining'));
+  const reset = parseInt(response.headers.get('X-RateLimit-Reset'));
+  
+  if (remaining < 10) {
+    console.warn(`Only ${remaining} requests left. Resets in ${reset}s`);
+  }
+  
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get('Retry-After'));
+    throw new RateLimitError(retryAfter);
+  }
+  
+  return response;
+}
+```
+
+### Exponential Backoff
+
+```javascript
+async function fetchWithBackoff(url, options, maxRetries = 3) {
+  let delay = 1000; // Start with 1 second
+  
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch(url, options);
+    
+    if (response.status !== 429) {
+      return response;
+    }
+    
+    // Use Retry-After if provided
+    const retryAfter = response.headers.get('Retry-After');
+    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay;
+    
+    console.log(`Rate limited. Waiting ${waitTime}ms...`);
+    await sleep(waitTime);
+    
+    delay *= 2; // Exponential backoff
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+```
+
+### Request Queue
+
+For high-volume applications, use a queue:
+
+```javascript
+class RateLimitedQueue {
+  constructor(requestsPerMinute) {
+    this.limit = requestsPerMinute;
+    this.queue = [];
+    this.processing = false;
+  }
+  
+  async enqueue(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ requestFn, resolve, reject });
+      this.processQueue();
+    });
+  }
+  
+  async processQueue() {
+    if (this.processing || this.queue.length === 0) return;
+    
+    this.processing = true;
+    const { requestFn, resolve, reject } = this.queue.shift();
+    
+    try {
+      const result = await requestFn();
+      resolve(result);
+    } catch (error) {
+      reject(error);
+    }
+    
+    // Wait before processing next
+    const waitTime = (60 * 1000) / this.limit;
+    await sleep(waitTime);
+    
+    this.processing = false;
+    this.processQueue();
+  }
+}
+
+// Usage
+const queue = new RateLimitedQueue(50); // 50 req/min
+
+const response = await queue.enqueue(() =>
+  fetch('/returns/authorize', { method: 'POST', body: data })
+);
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Monitor Rate Limit Headers">
+    Always check `X-RateLimit-Remaining` and slow down requests when it gets low.
+    
+    ```javascript
+    if (remaining < limit * 0.1) { // Less than 10% left
+      console.warn('Approaching rate limit!');
+      // Slow down or queue requests
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Respect Retry-After">
+    Never retry immediately on 429. Always wait for `Retry-After` duration.
+    
+    ```javascript
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      await sleep(retryAfter * 1000);
+      // Then retry
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement Backoff">
+    Use exponential backoff with jitter to avoid thundering herd:
+    
+    ```javascript
+    const jitter = Math.random() * 1000; // 0-1000ms
+    const delay = Math.min(baseDelay * Math.pow(2, attempt) + jitter, maxDelay);
+    ```
+  </Accordion>
+  
+  <Accordion title="Batch Operations">
+    If you need to process many operations, batch them:
+    
+    ```javascript
+    // Bad: 100 separate requests
+    for (const order of orders) {
+      await processReturn(order);
+    }
+    
+    // Good: Process in controlled batches
+    const batchSize = 10;
+    for (let i = 0; i < orders.length; i += batchSize) {
+      const batch = orders.slice(i, i + batchSize);
+      await Promise.all(batch.map(processReturn));
+      await sleep(60000 / 50); // Stay under 50 req/min
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Cache Responses">
+    Cache responses when possible to reduce API calls:
+    
+    ```javascript
+    const cache = new Map();
+    
+    async function getCachedPolicy(policyId) {
+      if (cache.has(policyId)) {
+        return cache.get(policyId);
+      }
+      
+      const policy = await fetch(`/policy/${policyId}`).then(r => r.json());
+      cache.set(policyId, policy);
+      return policy;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Different Limits for Different Endpoints
+
+Rate limits are **per-endpoint**, not account-wide. This means:
+
+✅ **Good:** You can use all limits concurrently
+```javascript
+// These run in parallel and have separate limits
+await Promise.all([
+  fetch('/returns/token', ...),      // 100/min limit
+  fetch('/returns/authorize', ...),  // 50/min limit (different!)
+  fetch('/webhooks/shopify', ...)    // 200/min limit (different!)
+]);
+```
+
+❌ **Don't assume:** Account-wide limit
+```javascript
+// Wrong assumption: "I have 100 requests total"
+// Reality: 100/min for /token, 50/min for /authorize, etc.
+```
+
+---
+
+## Monitoring Rate Limits
+
+### Datadog Integration
+
+```javascript
+const dd = require('dd-trace');
+
+function trackRateLimits(response) {
+  const limit = response.headers.get('X-RateLimit-Limit');
+  const remaining = response.headers.get('X-RateLimit-Remaining');
+  
+  dd.gauge('arcana.rate_limit.remaining', remaining, {
+    endpoint: response.url,
+    limit: limit
+  });
+  
+  if (response.status === 429) {
+    dd.increment('arcana.rate_limit.exceeded', {
+      endpoint: response.url
+    });
+  }
+}
+```
+
+### Custom Dashboard
+
+Track your usage over time:
+
+```javascript
+const usageLog = [];
+
+function logUsage(endpoint, remaining, limit) {
+  usageLog.push({
+    timestamp: Date.now(),
+    endpoint,
+    remaining,
+    limit,
+    usage: ((limit - remaining) / limit) * 100
+  });
+  
+  // Alert if usage > 90%
+  if (remaining < limit * 0.1) {
+    sendAlert(`High usage on ${endpoint}: ${remaining}/${limit} remaining`);
+  }
+}
+```
+
+---
+
+## Need Higher Limits?
+
+<Card title="Contact Us" icon="envelope" href="mailto:sales@arcana.returns">
+  Enterprise plans offer custom rate limits. Contact **sales@arcana.returns**
+</Card>
+
+---
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What happens if I hit the limit?">
+    You'll receive a `429 Too Many Requests` response. Wait for the duration specified in `Retry-After` header before retrying.
+  </Accordion>
+  
+  <Accordion title="Are limits per API key or per account?">
+    Limits are per merchant, which means all API keys for the same merchant share the same quota.
+  </Accordion>
+  
+  <Accordion title="Do failed requests count against the limit?">
+    Yes, all requests (successful or failed) count toward your rate limit.
+  </Accordion>
+  
+  <Accordion title="Can I request higher limits?">
+    Yes! Contact sales@arcana.returns for enterprise pricing with custom limits.
+  </Accordion>
+  
+  <Accordion title="How do I know when my limit resets?">
+    Check the `X-RateLimit-Reset` header - it shows seconds until the limit resets.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/reference/error-codes">
+    Learn how to handle all error types
+  </Card>
+  <Card title="Idempotency" icon="fingerprint" href="/guides/idempotency">
+    Prevent duplicate operations
+  </Card>
+</CardGroup>

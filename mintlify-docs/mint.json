@@ -1,0 +1,130 @@
+{
+  "name": "Arcana Returns",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:api-support@arcana.returns"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://arcana.returns/dashboard"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Guides",
+      "url": "guides"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/arcana-labs/arcana-returns"
+    },
+    {
+      "name": "Community",
+      "icon": "discord",
+      "url": "https://discord.gg/arcana-dev"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "authentication"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "concepts/returns-flow",
+        "concepts/policy-management",
+        "concepts/audit-ledger"
+      ]
+    },
+    {
+      "group": "Production Features",
+      "pages": [
+        "guides/idempotency",
+        "guides/rate-limiting",
+        "guides/monitoring",
+        "reference/error-codes"
+      ]
+    },
+    {
+      "group": "Returns API",
+      "pages": [
+        "api-reference/returns/token",
+        "api-reference/returns/authorize",
+        "api-reference/returns/commit"
+      ]
+    },
+    {
+      "group": "Policy API",
+      "pages": [
+        "api-reference/policy/import",
+        "api-reference/policy/get",
+        "api-reference/policy/diff"
+      ]
+    },
+    {
+      "group": "AEL API",
+      "pages": [
+        "api-reference/ael/get-decision",
+        "api-reference/ael/list-decisions",
+        "api-reference/ael/generate-replay",
+        "api-reference/ael/compare"
+      ]
+    },
+    {
+      "group": "Webhooks",
+      "pages": [
+        "api-reference/webhooks/shopify",
+        "api-reference/webhooks/stripe"
+      ]
+    },
+    {
+      "group": "Integration Guides",
+      "pages": [
+        "guides/shopify-integration",
+        "guides/stripe-integration",
+        "guides/custom-platform"
+      ]
+    },
+    {
+      "group": "Examples",
+      "pages": [
+        "guides/examples/complete-flow",
+        "guides/examples/policy-management",
+        "guides/examples/ael-replay"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/arcana-labs",
+    "twitter": "https://twitter.com/arcanalabs",
+    "linkedin": "https://linkedin.com/company/arcana-labs"
+  },
+  "openapi": "openapi.yaml"
+}

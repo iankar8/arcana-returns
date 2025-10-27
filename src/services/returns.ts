@@ -12,6 +12,7 @@ import {
 import { ArcanaError, ErrorCodes, generateId, generateTraceId } from '../types/common.js';
 import { signReturnToken, verifyReturnToken } from './jwt.js';
 import { PolicyService } from './policy.js';
+import { evidenceValidator } from './evidence-validator.js';
 
 /**
  * Returns API Service
@@ -135,6 +136,24 @@ export class ReturnsService {
     const policy = this.policyService.getPolicyByHash(claims.policy_snapshot_hash);
     if (!policy) {
       throw new ArcanaError(ErrorCodes.RT_010, 'Policy hash mismatch', 400);
+    }
+    
+    // Validate evidence if provided
+    if (request.evidence && request.evidence.length > 0) {
+      const validationResult = await evidenceValidator.validateEvidence(request.evidence as any);
+      
+      if (!validationResult.valid) {
+        // Return detailed validation errors
+        const errorMessages = validationResult.errors.map(e => `${e.field}: ${e.message}`).join('; ');
+        throw new ArcanaError(
+          validationResult.errors[0].code,
+          `Evidence validation failed: ${errorMessages}`,
+          400,
+          {
+            errors: validationResult.errors,
+          }
+        );
+      }
     }
     
     // Store evidence

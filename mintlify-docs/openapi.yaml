@@ -1,0 +1,864 @@
+openapi: 3.1.0
+info:
+  title: Arcana Returns API
+  version: 0.1.0
+  description: |
+    Agentic returns with audit-grade logging.
+    
+    ## Authentication
+    All endpoints (except webhooks and health checks) require Bearer token authentication.
+    
+    ## Rate Limits
+    Rate limits are per-endpoint and per-merchant:
+    - `/returns/token`: 100 requests/minute
+    - `/returns/authorize`: 50 requests/minute
+    - `/returns/commit`: 50 requests/minute
+    - `/webhooks/*`: 200 requests/minute
+    
+    ## Production Features
+    - **Idempotency**: Use `Idempotency-Key` header to prevent duplicates
+    - **Evidence Validation**: Automatic URL and content validation
+    - **Webhook Retry**: Exponential backoff with Dead Letter Queue
+    - **Enhanced Errors**: Field-specific errors with suggestions
+    
+    ## Base URL
+    - Production: `https://arcana-returns-api.fly.dev`
+  contact:
+    name: API Support
+    email: api-support@arcana.returns
+    url: https://docs.arcana.returns
+  license:
+    name: Proprietary
+    url: https://arcana.returns/terms
+
+servers:
+  - url: https://arcana-returns-api.fly.dev
+    description: Production
+  - url: http://localhost:3000
+    description: Local Development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Returns
+    description: 3-step returns flow (token → authorize → commit)
+  - name: Policy
+    description: Policy management and versioning
+  - name: AEL
+    description: Audit & Eval Ledger for decision replay
+  - name: Webhooks
+    description: External event handlers
+  - name: Health
+    description: System health and status
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: 0.1.0
+
+  /returns/token:
+    post:
+      tags: [Returns]
+      summary: Issue Return Token
+      description: |
+        Issue a signed Return Token (RT) to begin the returns process.
+        
+        The token:
+        - Is signed with Ed25519
+        - Expires in 15 minutes
+        - Contains policy snapshot hash
+        - Is one-time use (revoked on commit)
+      operationId: issueReturnToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+            examples:
+              basic:
+                summary: Basic return request
+                value:
+                  order_id: ord_123456
+                  customer_ref: cust_abc789
+                  items:
+                    - sku: SHIRT-M-BLUE
+                      qty: 1
+                      price_cents: 2999
+                      name: Blue Cotton Shirt - Medium
+                  reason_code: doesnt_fit
+                  policy_id: plc_xyz123
+      responses:
+        '200':
+          description: Token issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                success:
+                  value:
+                    return_token: rt.eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...
+                    risk_score: 0.12
+                    required_evidence: [photo_packaging]
+                    policy_snapshot_hash: sha256:a4b8c9d...
+                    trace_id: trc_9Nf2kL5p
+                    expires_at: '2025-10-26T19:20:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PolicyNotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /returns/authorize:
+    post:
+      tags: [Returns]
+      summary: Authorize Return
+      description: |
+        Authorize a return after evidence collection.
+        
+        Decision types:
+        - `approve`: Return accepted
+        - `step_up`: Additional verification needed
+        - `deny`: Return rejected per policy
+      operationId: authorizeReturn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizeRequest'
+            examples:
+              with_evidence:
+                summary: Authorization with photo evidence
+                value:
+                  return_token: rt.eyJhbGc...
+                  evidence:
+                    - type: photo_packaging
+                      url: https://cdn.example.com/evidence/pkg.jpg
+                  dropoff_choice: mail_in
+      responses:
+        '200':
+          description: Authorization decision made
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '410':
+          $ref: '#/components/responses/TokenExpired'
+        '422':
+          $ref: '#/components/responses/EvidenceIncomplete'
+
+  /returns/commit:
+    post:
+      tags: [Returns]
+      summary: Commit Return
+      description: |
+        Finalize the return and issue refund instruction.
+        
+        This endpoint:
+        - Revokes the return token
+        - Generates final receipt
+        - Issues refund instruction to merchant
+      operationId: commitReturn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitRequest'
+      responses:
+        '200':
+          description: Return committed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/TokenNotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '410':
+          $ref: '#/components/responses/TokenExpired'
+
+  /policy/import:
+    post:
+      tags: [Policy]
+      summary: Import Policy
+      description: Import a return policy from PDF, URL, or plain text
+      operationId: importPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyImportRequest'
+      responses:
+        '200':
+          description: Policy imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyImportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/PolicyParseError'
+
+  /policy/{policyId}:
+    get:
+      tags: [Policy]
+      summary: Get Policy
+      description: Retrieve the latest policy snapshot
+      operationId: getPolicy
+      parameters:
+        - $ref: '#/components/parameters/policyId'
+      responses:
+        '200':
+          description: Policy retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyGraph'
+        '404':
+          $ref: '#/components/responses/PolicyNotFound'
+
+  /policy/{policyId}/diff:
+    get:
+      tags: [Policy]
+      summary: Compare Policies
+      description: Compare two policy snapshots
+      operationId: diffPolicies
+      parameters:
+        - $ref: '#/components/parameters/policyId'
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Source snapshot ID
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Target snapshot ID
+      responses:
+        '200':
+          description: Diff generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDiff'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /ael/decision/{id}:
+    get:
+      tags: [AEL]
+      summary: Get Decision
+      description: Retrieve a decision with Bill of Materials
+      operationId: getDecision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Decision ID
+      responses:
+        '200':
+          description: Decision retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AELDecisionResponse'
+        '404':
+          $ref: '#/components/responses/DecisionNotFound'
+
+  /ael/decisions:
+    get:
+      tags: [AEL]
+      summary: List Decisions
+      description: List recent decisions for merchant
+      operationId: listDecisions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Number of results
+      responses:
+        '200':
+          description: Decisions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  decisions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Decision'
+
+  /ael/replay/{id}:
+    post:
+      tags: [AEL]
+      summary: Generate Replay
+      description: Generate replay artifact for time-travel debugging
+      operationId: generateReplay
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Replay generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replay_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [generated]
+
+  /webhooks/shopify:
+    post:
+      tags: [Webhooks]
+      summary: Shopify Webhook
+      security: []
+      parameters:
+        - name: X-Shopify-Topic
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Shopify-Shop-Domain
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Shopify-Hmac-Sha256
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+
+  /webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      summary: Stripe Webhook
+      security: []
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key with format: `sk_live_...` or `sk_test_...`
+
+  parameters:
+    policyId:
+      name: policyId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Policy identifier
+
+  schemas:
+    TokenRequest:
+      type: object
+      required: [order_id, customer_ref, items, reason_code, policy_id]
+      properties:
+        order_id:
+          type: string
+          description: Your order identifier
+          example: ord_123456
+        customer_ref:
+          type: string
+          description: Pseudonymous customer ID (not PII)
+          example: cust_abc789
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ReturnItem'
+        reason_code:
+          type: string
+          enum: [doesnt_fit, not_as_described, damaged, wrong_item, changed_mind, quality_issue, other]
+          description: Reason for return
+        device_fingerprint:
+          type: string
+          description: Optional device ID for risk scoring
+        agent_headers:
+          type: object
+          properties:
+            agent_id:
+              type: string
+            attestation:
+              type: string
+            version:
+              type: string
+        policy_id:
+          type: string
+          description: Target policy ID
+          example: plc_xyz123
+
+    ReturnItem:
+      type: object
+      required: [sku, qty, price_cents]
+      properties:
+        sku:
+          type: string
+          description: Product SKU
+          example: SHIRT-M-BLUE
+        qty:
+          type: integer
+          minimum: 1
+          description: Quantity to return
+        price_cents:
+          type: integer
+          minimum: 0
+          description: Unit price in cents
+          example: 2999
+        name:
+          type: string
+          description: Optional product name
+          example: Blue Cotton Shirt - Medium
+
+    TokenResponse:
+      type: object
+      properties:
+        return_token:
+          type: string
+          description: Signed JWT token
+        risk_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Risk score (higher = riskier)
+        required_evidence:
+          type: array
+          items:
+            type: string
+        policy_snapshot_hash:
+          type: string
+          description: SHA-256 hash of policy
+        trace_id:
+          type: string
+          description: Request trace ID
+        expires_at:
+          type: string
+          format: date-time
+
+    AuthorizeRequest:
+      type: object
+      required: [return_token, evidence]
+      properties:
+        return_token:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidence'
+        dropoff_choice:
+          type: string
+          enum: [mail_in, drop_off, in_store]
+
+    Evidence:
+      type: object
+      required: [type, url]
+      properties:
+        type:
+          type: string
+          enum: [photo_packaging, photo_product, photo_defect, receipt, video]
+        url:
+          type: string
+          format: uri
+        uploaded_at:
+          type: string
+          format: date-time
+
+    AuthorizeResponse:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approve, step_up, deny]
+        conditions:
+          type: object
+          properties:
+            restock_pct:
+              type: number
+              minimum: 0
+              maximum: 100
+            window:
+              type: integer
+        label_credential:
+          type: string
+          nullable: true
+        explanations:
+          type: array
+          items:
+            type: string
+        audit_ref:
+          type: string
+        step_up_requirements:
+          type: array
+          items:
+            type: string
+
+    CommitRequest:
+      type: object
+      required: [return_token, receipt_event]
+      properties:
+        return_token:
+          type: string
+        receipt_event:
+          type: object
+          required: [type, ts]
+          properties:
+            type:
+              type: string
+              enum: [scan, dropoff, received]
+            carrier:
+              type: string
+            ts:
+              type: string
+              format: date-time
+            tracking_number:
+              type: string
+
+    CommitResponse:
+      type: object
+      properties:
+        refund_instruction:
+          type: string
+          enum: [hold, instant, partial, deny]
+        final_receipt:
+          type: object
+          properties:
+            id:
+              type: string
+            refund_amount_cents:
+              type: integer
+            refund_method:
+              type: string
+        audit_ref:
+          type: string
+
+    PolicyImportRequest:
+      type: object
+      required: [source_type, merchant_id]
+      properties:
+        source_type:
+          type: string
+          enum: [pdf, url, text]
+        source_content:
+          type: string
+        source_url:
+          type: string
+          format: uri
+        merchant_id:
+          type: string
+        effective_at:
+          type: string
+          format: date-time
+
+    PolicyImportResponse:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        snapshot_id:
+          type: string
+        policy_snapshot_hash:
+          type: string
+        requires_review:
+          type: boolean
+        extracted_fields:
+          type: object
+
+    PolicyGraph:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        snapshot_id:
+          type: string
+        hash:
+          type: string
+        effective_at:
+          type: string
+          format: date-time
+        return_window_days:
+          type: integer
+        restock_fee_pct:
+          type: number
+        allowed_channels:
+          type: array
+          items:
+            type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        exclusions:
+          type: array
+          items:
+            type: string
+
+    PolicyDiff:
+      type: object
+      properties:
+        from_snapshot_id:
+          type: string
+        to_snapshot_id:
+          type: string
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              old_value:
+                type: object
+              new_value:
+                type: object
+              change_type:
+                type: string
+                enum: [added, removed, modified]
+        summary:
+          type: string
+
+    Decision:
+      type: object
+      properties:
+        decision_id:
+          type: string
+        trace_id:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        merchant_id:
+          type: string
+        return_token_jti:
+          type: string
+        output:
+          type: object
+          properties:
+            decision:
+              type: string
+            risk_score:
+              type: number
+
+    AELDecisionResponse:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/Decision'
+        bom:
+          type: object
+          properties:
+            decision_id:
+              type: string
+            policy_snapshot_hash:
+              type: string
+            code_version:
+              type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+            trace_id:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RT-001
+              message: Malformed payload
+              trace_id: trc_abc123
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: AUTH-001
+              message: Invalid API key
+              trace_id: trc_abc123
+
+    PolicyNotFound:
+      description: Policy Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: POL-001
+              message: Policy not found
+              trace_id: trc_abc123
+
+    TokenNotFound:
+      description: Token Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RT-006
+              message: Token not found
+              trace_id: trc_abc123
+
+    TokenExpired:
+      description: Token Expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RT-004
+              message: Token expired
+              trace_id: trc_abc123
+
+    EvidenceIncomplete:
+      description: Evidence Incomplete
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RT-008
+              message: Evidence incomplete
+              trace_id: trc_abc123
+
+    PolicyParseError:
+      description: Policy Parse Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: POL-003
+              message: Policy parse error
+              trace_id: trc_abc123
+
+    DecisionNotFound:
+      description: Decision Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: AEL-001
+              message: Decision not found
+              trace_id: trc_abc123
+
+    IdempotencyConflict:
+      description: Idempotency Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RT-021
+              message: Already committed
+              trace_id: trc_abc123
+
+    RateLimitExceeded:
+      description: Rate Limit Exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RATE-001
+              message: Rate limit exceeded
+              trace_id: trc_abc123

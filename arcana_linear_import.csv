@@ -4,31 +4,31 @@ Epic: Policy Snapshot Extractor (Policy Graph),"Convert merchant return policies
 Phase: Phase 0 - Foundations
 Definition of Done:
 - Meets spec acceptance criteria for the epic.
-- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 0 - Foundations",High,Agentic Returns v0,Todo,,
+- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 0 - Foundations",High,Agentic Returns v0,Done,,
 Epic: Returns API + Return Token (RT),"Expose 3 endpoints: POST /returns/token, /authorize, /commit. Short-lived signed RT (Ed25519/ES256), idempotency, rate limits, observability. Success: End-to-end decision with signed Evidence Bundle.
 
 Phase: Phase 1 - Returns API Core
 Definition of Done:
 - Meets spec acceptance criteria for the epic.
-- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 1 - Returns API Core",High,Agentic Returns v0,Todo,,
+- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 1 - Returns API Core",High,Agentic Returns v0,Done,,
 Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),"Append-only decision store with Decision BOM. Export signed Evidence Bundle; basic replay with pinned artifacts; simple diff reports.
 
 Phase: Phase 2 - Core Add-on
 Definition of Done:
 - Meets spec acceptance criteria for the epic.
-- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 2 - Core Add-on",High,Agentic Returns v0,Todo,,
+- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 2 - Core Add-on",High,Agentic Returns v0,Done,,
 Epic: Adapter — Shopify,"Pilot-ready Shopify app: admin UI extension, webhooks mapping orders/fulfillments/returns to RT calls; contract tests against sandbox store.
 
 Phase: Phase 2 - Adapters
 Definition of Done:
 - Meets spec acceptance criteria for the epic.
-- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 2 - Adapters",High,Agentic Returns v0,Todo,,
+- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 2 - Adapters",High,Agentic Returns v0,In Progress,,
 Epic: Adapter — Stripe (Webhook MVP),"Map refunds to Return Tokens via metadata contract; reconcile to /commit. Treat as enrichment; contract tests in Stripe test mode.
 
 Phase: Phase 2 - Adapters
 Definition of Done:
 - Meets spec acceptance criteria for the epic.
-- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 2 - Adapters",High,Agentic Returns v0,Todo,,
+- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 2 - Adapters",High,Agentic Returns v0,In Progress,,
 Epic: Agent Protocol Orchestrator (Descriptor Lite),"Normalize optional agent headers/claims into an agent_descriptor; apply step-up ladders; maintain per-merchant revocations; privacy-safe by design.
 
 Phase: Phase 3 - Agent Signals
@@ -40,7 +40,7 @@ Epic: Analyst Mini-Console / CLI,"Simulate decisions, adjust evidence ladders (n
 Phase: Phase 3 - Tooling
 Definition of Done:
 - Meets spec acceptance criteria for the epic.
-- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 3 - Tooling",High,Agentic Returns v0,Todo,,
+- Linked pilot(s) can exercise paths end-to-end.","Epic, Phase 3 - Tooling",High,Agentic Returns v0,Done,,
 Epic: Pilot A — E-comm Cohort (incl. Bilt),"Run narrow SKU cohort with weekly before/after deltas and replay demos. Gate for approvals later.
 
 Phase: Phase 4 - Pilots & Proof
@@ -70,24 +70,24 @@ Definition of Done:
 Acceptance Criteria:
 - Given a PDF/URL, when I submit it, then the raw file and checksum are stored
 - Failures are retriable with idempotent keys
-- Max file size and types documented","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Todo,Epic: Policy Snapshot Extractor (Policy Graph),
+- Max file size and types documented","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Done,Epic: Policy Snapshot Extractor (Policy Graph),
 Normalization schema for Policy Graph,"As a fraud analyst, I want to see a unified schema (window, evidence, item classes, geo, exclusions) so that policy interpretation is consistent.
 
 Acceptance Criteria:
 - Schema is versioned with explicit defaults
 - Unknown fields are captured under extensions
-- Unit tests cover 10 common policy patterns","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Todo,Epic: Policy Snapshot Extractor (Policy Graph),
+- Unit tests cover 10 common policy patterns","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Done,Epic: Policy Snapshot Extractor (Policy Graph),
 Parser mapping rules v0,"As a engineer, I want to map policy text to normalized fields so that reduce manual effort.
 
 Acceptance Criteria:
 - Map rules for window, evidence, exclusions at minimum
 - 90% precision on golden corpus
-- Ambiguities flagged for human review","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Todo,Epic: Policy Snapshot Extractor (Policy Graph),
+- Ambiguities flagged for human review","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Done,Epic: Policy Snapshot Extractor (Policy Graph),
 Versioning & hash computation,"As a auditor, I want to reference a stable policy_snapshot_hash so that decisions cite an immutable policy version.
 
 Acceptance Criteria:
 - Snapshot ID and sha256 deterministic across re-imports
-- Diff view shows changed fields with timestamps","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Todo,Epic: Policy Snapshot Extractor (Policy Graph),
+- Diff view shows changed fields with timestamps","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Done,Epic: Policy Snapshot Extractor (Policy Graph),
 Human review UI (minimal),"As a policy owner, I want to accept/flag parsed output so that policy errors are caught before activation.
 
 Acceptance Criteria:
@@ -97,7 +97,7 @@ Policy diff view,"As a analyst, I want to compare snapshots so that I understand
 
 Acceptance Criteria:
 - Show added/removed/modified fields
-- Export diff to JSON & PDF","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Todo,Epic: Policy Snapshot Extractor (Policy Graph),
+- Export diff to JSON & PDF","Task, Phase 0 - Foundations, Policy Graph",High,Agentic Returns v0,Done,Epic: Policy Snapshot Extractor (Policy Graph),
 Webhook on policy change,"As a merchant engineer, I want to receive a webhook when a new snapshot is approved so that downstream caches refresh automatically.
 
 Acceptance Criteria:
@@ -113,7 +113,7 @@ Acceptance Criteria:
 Acceptance Criteria:
 - Claims include order_id, items_hash, user_ref, policy_snapshot_hash, device_hash, agent_id, trace_id, exp, jti
 - TTL ≤ 15m; revocation list supported
-- JWS with Ed25519 or ES256; JWKS exposed","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- JWS with Ed25519 or ES256; JWKS exposed","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 JWK discovery & key rotation (KMS-backed),"As a security lead, I want to rotate keys safely and publish JWKS so that crypto agility and auditability.
 
 Acceptance Criteria:
@@ -123,39 +123,39 @@ Idempotency & rate limiting,"As a merchant engineer, I want to safely retry requ
 
 Acceptance Criteria:
 - Idempotency-Key header enforced
-- Per-tenant quotas and bursts documented","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Per-tenant quotas and bursts documented","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 Endpoint: POST /returns/token,"As a storefront, I want to obtain a signed token bound to policy+context so that subsequent calls are trusted.
 
 Acceptance Criteria:
 - Validates payload; binds policy_snapshot_hash
 - Returns risk_score and required_evidence
-- Emits trace_id in response","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Emits trace_id in response","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 Endpoint: POST /returns/authorize,"As a fraud analyst, I want to receive a decision with explanations so that I can tune evidence ladders.
 
 Acceptance Criteria:
 - Decisions: approve/step_up/deny
 - Explanations array included
-- Audit ref returned","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Audit ref returned","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 Endpoint: POST /returns/commit,"As a merchant ops, I want to finalize refund instructions on receipt events so that accurate refunds.
 
 Acceptance Criteria:
 - Accepts scan/ingest events
-- Outputs refund_instruction and final receipt","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Outputs refund_instruction and final receipt","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 Observability & decision log,"As a SRE, I want to correlate events across systems via trace_id so that debugging is fast.
 
 Acceptance Criteria:
 - Structured logs include decision path
-- Metrics: p95 latency, approve/step_up/deny ratio, evidence rate","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Metrics: p95 latency, approve/step_up/deny ratio, evidence rate","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 AuthN/Z & tenant isolation,"As a admin, I want to manage API keys and roles so that principle of least privilege.
 
 Acceptance Criteria:
 - RBAC roles defined; audit log enabled
-- Per-tenant data fences validated in tests","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Per-tenant data fences validated in tests","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 Evidence ladder config (v0),"As a analyst, I want to configure thresholds for step-ups so that reduce false friction.
 
 Acceptance Criteria:
 - Declarative config file with defaults
-- Simulation mode returns proposed changes","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Todo,Epic: Returns API + Return Token (RT),
+- Simulation mode returns proposed changes","Task, Phase 1 - Returns API Core, RT",High,Agentic Returns v0,Done,Epic: Returns API + Return Token (RT),
 Shopify app skeleton (custom app),"As a merchant admin, I want to install an app to connect to Arcana so that zero bespoke engineering.
 
 Acceptance Criteria:
@@ -195,27 +195,27 @@ Decision & BOM schema,"As a auditor, I want to view model/prompt/tool refs and p
 
 Acceptance Criteria:
 - Schema documented and versioned
-- Backfilled on each decision","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Todo,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
+- Backfilled on each decision","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Done,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
 Append-only store + signed Evidence Bundle export,"As a compliance, I want to download a signed bundle per decision so that external audits are easy.
 
 Acceptance Criteria:
 - Bundle includes inputs, outputs, policy snapshot, BOM
-- Signature verifiable via JWKS","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Todo,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
+- Signature verifiable via JWKS","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Done,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
 Basic replay with pinned artifacts,"As a risk lead, I want to re-run a decision under an env lock so that verify changes.
 
 Acceptance Criteria:
 - Replay parity target ≥ 95% on golden set
-- Artifacts (models/tools) pinned or mocked","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Todo,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
+- Artifacts (models/tools) pinned or mocked","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Done,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
 Diff report (baseline vs candidate),"As a analyst, I want to see the delta when model/policy/code changes so that safe upgrades.
 
 Acceptance Criteria:
 - Human-readable + JSON diff
-- Attached to weekly pilot report","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Todo,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
+- Attached to weekly pilot report","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Done,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
 RBAC & audit for AEL-lite,"As a security, I want to restrict and audit access to decision data so that compliance & privacy.
 
 Acceptance Criteria:
 - Role matrix documented
-- Access logs exportable","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Todo,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
+- Access logs exportable","Task, Phase 2 - Core Add-on, AEL",High,Agentic Returns v0,Done,Epic: AEL-lite (Evidence Bundle + Basic Replay/Diff),
 Descriptor schema (agent_descriptor),"As a agent developer, I want to pass optional signed claims/UA hints so that merchants can step-up appropriately.
 
 Acceptance Criteria:
@@ -240,16 +240,16 @@ CLI simulate decision,"As a analyst, I want to simulate a return decision and vi
 
 Acceptance Criteria:
 - Command returns decision + explanations
-- Supports dry-run mode against sandbox","Task, Phase 3 - Tooling, CLI",High,Agentic Returns v0,Todo,Epic: Analyst Mini-Console / CLI,
+- Supports dry-run mode against sandbox","Task, Phase 3 - Tooling, CLI",High,Agentic Returns v0,Done,Epic: Analyst Mini-Console / CLI,
 CLI adjust ladder (non-enforcing),"As a analyst, I want to change thresholds and export policy packs so that review changes before applying.
 
 Acceptance Criteria:
 - Writes config with diff preview
-- Validation prevents breaking changes","Task, Phase 3 - Tooling, CLI",High,Agentic Returns v0,Todo,Epic: Analyst Mini-Console / CLI,
+- Validation prevents breaking changes","Task, Phase 3 - Tooling, CLI",High,Agentic Returns v0,Done,Epic: Analyst Mini-Console / CLI,
 Replay bundle export (CLI),"As a auditor, I want to export replay/evidence bundles so that external sharing.
 
 Acceptance Criteria:
-- ZIP contains inputs, outputs, BOM, policy, signatures","Task, Phase 3 - Tooling, CLI",High,Agentic Returns v0,Todo,Epic: Analyst Mini-Console / CLI,
+- ZIP contains inputs, outputs, BOM, policy, signatures","Task, Phase 3 - Tooling, CLI",High,Agentic Returns v0,Done,Epic: Analyst Mini-Console / CLI,
 Pilot enablement & config,"As a solutions engineer, I want to onboard merchant with keys, metadata contract, config so that pilot starts within 7 days.
 
 Acceptance Criteria:

@@ -31,10 +31,10 @@ export function closeDb(): void {
 }
 
 // Prepared statement helpers
-export function prepare<T = any>(sql: string) {
-  return getDb().prepare<T>(sql);
+export function prepare(sql: string): any {
+  return getDb().prepare(sql);
 }
 
-export function transaction<T>(fn: () => T): T {
+export function transaction(fn: () => any): any {
   return getDb().transaction(fn)();
 }

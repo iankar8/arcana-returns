@@ -6,6 +6,8 @@ import { returnsCommand } from './commands/returns.js';
 import { replayCommand } from './commands/replay.js';
 import { ladderCommand } from './commands/ladder.js';
 import { keysCommand } from './commands/keys.js';
+import { processCommand } from './commands/process.js';
+import { maintenanceCommand } from './commands/maintenance.js';
 
 // Load environment
 config();
@@ -25,5 +27,7 @@ program.addCommand(returnsCommand);
 program.addCommand(replayCommand);
 program.addCommand(ladderCommand);
 program.addCommand(keysCommand);
+program.addCommand(processCommand);
+program.addCommand(maintenanceCommand);
 
 program.parse();

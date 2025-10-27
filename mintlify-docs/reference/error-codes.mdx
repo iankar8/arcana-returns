@@ -1,0 +1,465 @@
+---
+title: 'Error Codes Reference'
+description: 'Complete list of API error codes with resolutions'
+---
+
+## Error Response Format
+
+All errors follow a consistent, enhanced format:
+
+```json
+{
+  "error": {
+    "code": "RT-007",
+    "message": "Invalid token signature",
+    "suggestion": "Token signature invalid. Do not modify the token. If the issue persists, generate a new token.",
+    "docs_url": "https://docs.arcana.dev/errors/RT-007",
+    "trace_id": "trc_9Nf2kL5p",
+    "fields": [
+      {
+        "field": "return_token",
+        "issue": "Signature verification failed",
+        "example": "rt.eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+      }
+    ]
+  }
+}
+```
+
+<Tip>
+  Always include the `trace_id` when contacting support for faster resolution!
+</Tip>
+
+---
+
+## Authentication Errors
+
+### AUTH-001: Invalid API Key
+**Status:** 401 Unauthorized
+
+**Cause:** Missing or invalid API key in Authorization header
+
+**Resolution:**
+1. Check that Authorization header is set: `Authorization: Bearer sk_...`
+2. Verify API key hasn't been revoked
+3. Ensure you're using the correct environment (test vs live)
+
+**Example:**
+```json
+{
+  "error": {
+    "code": "AUTH-001",
+    "message": "Missing or invalid API key",
+    "suggestion": "Check that your Authorization header is set correctly: \"Bearer sk_...\""
+  }
+}
+```
+
+---
+
+### AUTH-002: Unauthorized
+**Status:** 403 Forbidden
+
+**Cause:** API key doesn't have permission for this resource
+
+**Resolution:**
+- Verify the resource belongs to your merchant account
+- Check API key permissions in dashboard
+- Ensure you're not accessing another merchant's data
+
+---
+
+## Validation Errors
+
+### VALIDATION-001: Request Validation Failed
+**Status:** 400 Bad Request
+
+**Cause:** Request body doesn't match the expected schema
+
+**Resolution:** Check the `fields` array for specific validation errors
+
+**Example:**
+```json
+{
+  "error": {
+    "code": "VALIDATION-001",
+    "message": "Request validation failed",
+    "suggestion": "Check the fields array for specific validation errors...",
+    "fields": [
+      {
+        "field": "items.0.sku",
+        "issue": "Required",
+        "example": "SHIRT-M"
+      },
+      {
+        "field": "items.0.price_cents",
+        "issue": "Must be a positive integer",
+        "example": "2999"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Return Token Errors
+
+### RT-001: Malformed Request
+**Status:** 400 Bad Request
+
+**Cause:** Request payload is malformed or missing required fields
+
+**Resolution:** Check the request body format and ensure all required fields are present
+
+---
+
+### RT-003: Items Outside Return Window
+**Status:** 422 Unprocessable Entity
+
+**Cause:** One or more items are outside the return window per policy
+
+**Resolution:**
+- Check the policy return window (e.g., 30 days)
+- Verify order date vs current date
+- Consider reaching out to support for exceptions
+
+---
+
+### RT-004: Token Expired
+**Status:** 410 Gone
+
+**Cause:** Return token has expired (15 minute TTL)
+
+**Resolution:** Generate a new token via `POST /returns/token`
+
+**Example:**
+```json
+{
+  "error": {
+    "code": "RT-004",
+    "message": "The return token has expired (15 minute TTL)",
+    "suggestion": "Generate a new token via POST /returns/token."
+  }
+}
+```
+
+---
+
+### RT-006: Token Not Found
+**Status:** 404 Not Found
+
+**Cause:** Return token doesn't exist or has been revoked
+
+**Resolution:**
+- Verify the token is correct
+- Check if token was already committed (one-time use)
+- Generate a new token if needed
+
+---
+
+### RT-007: Invalid Token Signature
+**Status:** 401 Unauthorized
+
+**Cause:** Token signature verification failed
+
+**Resolution:**
+- Do not modify the token
+- Ensure token wasn't corrupted in transit
+- Generate a new token if issue persists
+
+---
+
+### RT-008: Evidence Incomplete
+**Status:** 422 Unprocessable Entity
+
+**Cause:** Required evidence not provided or validation failed
+
+**Resolution:** Check `required_evidence` from token response and provide all requested evidence types
+
+**Example:**
+```json
+{
+  "error": {
+    "code": "RT-008",
+    "message": "Evidence validation failed",
+    "fields": [
+      {
+        "field": "evidence.0.url",
+        "issue": "URL returned 404 Not Found"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### RT-010: Policy Hash Mismatch
+**Status:** 409 Conflict
+
+**Cause:** Policy has changed since token was issued
+
+**Resolution:**
+1. Generate a new token with updated policy
+2. Policy snapshots prevent mid-flight policy changes from affecting decisions
+
+---
+
+### RT-011: Not Yet Authorized
+**Status:** 422 Unprocessable Entity
+
+**Cause:** Attempting to commit a return that hasn't been authorized
+
+**Resolution:** Call `POST /returns/authorize` before `POST /returns/commit`
+
+---
+
+### RT-021: Already Committed
+**Status:** 409 Conflict
+
+**Cause:** Return token has already been committed (idempotency check)
+
+**Resolution:**
+- Check if return was already processed
+- If retrying, use the same `Idempotency-Key`
+- Use different key for new return
+
+---
+
+## Evidence Validation Errors
+
+### EV-001: HTTPS Required
+**Status:** 400 Bad Request
+
+**Cause:** Evidence URL uses HTTP instead of HTTPS
+
+**Resolution:** Use HTTPS URL for security
+
+**Example:**
+```bash
+# Bad
+http://example.com/photo.jpg
+
+# Good
+https://example.com/photo.jpg
+```
+
+---
+
+### EV-004: URL Not Accessible
+**Status:** 400 Bad Request
+
+**Cause:** Evidence URL returned non-200 response
+
+**Resolution:**
+1. Verify URL is publicly accessible
+2. Check URL returns 200 OK
+3. Ensure no authentication required
+4. Check CDN/firewall settings
+
+---
+
+### EV-009: Content Type Mismatch
+**Status:** 400 Bad Request
+
+**Cause:** Evidence content-type doesn't match evidence type
+
+**Resolution:**
+- `photo_*` evidence types must return `image/*` content-type
+- `video_*` evidence types must return `video/*` content-type
+- Upload correct file format
+
+---
+
+### EV-011: File Size Exceeded
+**Status:** 400 Bad Request
+
+**Cause:** Evidence file exceeds 10MB limit
+
+**Resolution:**
+- Compress the file
+- Use image optimization (JPEG quality 80-85%)
+- Use CDN with automatic optimization
+
+---
+
+## Rate Limiting Errors
+
+### RATE-001: Rate Limit Exceeded
+**Status:** 429 Too Many Requests
+
+**Cause:** Too many requests to this endpoint in the current window
+
+**Resolution:**
+1. Wait for duration specified in `Retry-After` header
+2. Implement exponential backoff
+3. Respect rate limit headers
+
+**Response Headers:**
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 45
+Retry-After: 45
+```
+
+**Exponential Backoff Example:**
+```javascript
+async function makeRequestWithBackoff(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch(url, options);
+    
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
+      await sleep(retryAfter * 1000);
+      continue;
+    }
+    
+    return response;
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
+---
+
+## Policy Errors
+
+### POL-001: Policy Not Found
+**Status:** 404 Not Found
+
+**Cause:** Policy with given ID doesn't exist or has been deleted
+
+**Resolution:**
+1. Verify policy_id is correct
+2. Check policy exists for your merchant
+3. Import policy if missing
+
+---
+
+## Idempotency Errors
+
+### IDEMP-001: Request In Progress
+**Status:** 429 Too Many Requests
+
+**Cause:** Request with same idempotency key is already being processed
+
+**Resolution:** Wait for first request to complete before retrying
+
+---
+
+### IDEMP-002: Request Body Mismatch
+**Status:** 409 Conflict
+
+**Cause:** Same idempotency key used with different request body
+
+**Resolution:** Use a new idempotency key for the new request
+
+---
+
+## Internal Errors
+
+### INTERNAL-001: Internal Server Error
+**Status:** 500 Internal Server Error
+
+**Cause:** Unexpected server error
+
+**Resolution:**
+1. Retry the request
+2. If persists, contact support with `trace_id`
+3. Check status page for incidents
+
+---
+
+## Error Handling Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Check Status Codes">
+    ```javascript
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Error:', error.error.code, error.error.message);
+      
+      // Use suggestion for user-facing message
+      alert(error.error.suggestion);
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement Retry Logic">
+    Retry on:
+    - `429` (Rate Limit) - Use Retry-After header
+    - `500`, `502`, `503`, `504` - Exponential backoff
+    
+    Don't retry on:
+    - `400`, `401`, `403`, `404` - Client errors (fix the request)
+    - `409`, `410` - Conflict/Gone (operation complete or invalid)
+  </Accordion>
+  
+  <Accordion title="Save Trace IDs">
+    ```javascript
+    const error = await response.json();
+    
+    // Log for debugging
+    logger.error({
+      code: error.error.code,
+      message: error.error.message,
+      trace_id: error.error.trace_id,
+      request: { url, body }
+    });
+    
+    // Include in support tickets
+    contactSupport({
+      trace_id: error.error.trace_id,
+      description: 'Token generation failed'
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Field Errors">
+    ```javascript
+    const error = await response.json();
+    
+    if (error.error.fields) {
+      // Show field-specific errors to user
+      error.error.fields.forEach(fieldError => {
+        showErrorOnField(fieldError.field, fieldError.issue);
+        
+        // Optional: Show example
+        if (fieldError.example) {
+          showTooltip(fieldError.field, `Example: ${fieldError.example}`);
+        }
+      });
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## HTTP Status Code Summary
+
+| Code | Category | Retry? | Common Causes |
+|------|----------|--------|---------------|
+| 200 | Success | No | Request succeeded |
+| 400 | Client Error | No | Validation error, malformed request |
+| 401 | Auth Error | No | Invalid/missing API key |
+| 403 | Auth Error | No | Permission denied |
+| 404 | Client Error | No | Resource not found |
+| 409 | Conflict | No | Idempotency conflict, already committed |
+| 410 | Gone | No | Token expired |
+| 422 | Validation | No | Business logic error |
+| 429 | Rate Limit | Yes | Too many requests |
+| 500 | Server Error | Yes | Internal error |
+| 502/503/504 | Server Error | Yes | Temporary server issue |
+
+---
+
+## Need Help?
+
+<Card title="Contact Support" icon="life-ring" href="mailto:api-support@arcana.returns">
+  Include your `trace_id` for faster resolution: **api-support@arcana.returns**
+</Card>
