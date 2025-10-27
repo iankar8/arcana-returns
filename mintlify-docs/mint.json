@@ -24,16 +24,6 @@
     "name": "Dashboard",
     "url": "https://arcana.returns/dashboard"
   },
-  "tabs": [
-    {
-      "name": "API Reference",
-      "url": "api-reference"
-    },
-    {
-      "name": "Guides",
-      "url": "guides"
-    }
-  ],
   "anchors": [
     {
       "name": "GitHub",
@@ -56,68 +46,17 @@
       ]
     },
     {
-      "group": "Core Concepts",
-      "pages": [
-        "concepts/returns-flow",
-        "concepts/policy-management",
-        "concepts/audit-ledger"
-      ]
-    },
-    {
-      "group": "Production Features",
+      "group": "Guides",
       "pages": [
         "guides/idempotency",
         "guides/rate-limiting",
-        "guides/monitoring",
+        "guides/monitoring"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
         "reference/error-codes"
-      ]
-    },
-    {
-      "group": "Returns API",
-      "pages": [
-        "api-reference/returns/token",
-        "api-reference/returns/authorize",
-        "api-reference/returns/commit"
-      ]
-    },
-    {
-      "group": "Policy API",
-      "pages": [
-        "api-reference/policy/import",
-        "api-reference/policy/get",
-        "api-reference/policy/diff"
-      ]
-    },
-    {
-      "group": "AEL API",
-      "pages": [
-        "api-reference/ael/get-decision",
-        "api-reference/ael/list-decisions",
-        "api-reference/ael/generate-replay",
-        "api-reference/ael/compare"
-      ]
-    },
-    {
-      "group": "Webhooks",
-      "pages": [
-        "api-reference/webhooks/shopify",
-        "api-reference/webhooks/stripe"
-      ]
-    },
-    {
-      "group": "Integration Guides",
-      "pages": [
-        "guides/shopify-integration",
-        "guides/stripe-integration",
-        "guides/custom-platform"
-      ]
-    },
-    {
-      "group": "Examples",
-      "pages": [
-        "guides/examples/complete-flow",
-        "guides/examples/policy-management",
-        "guides/examples/ael-replay"
       ]
     }
   ],
